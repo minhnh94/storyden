@@ -25,10 +25,11 @@ jobs:
 
     services:
       postgres:
-        image: postgres
+        image: postgres:latest
         env:
           POSTGRES_USER: default
           POSTGRES_PASSWORD: default
+          POSTGRES_INITDB_ARGS: "-c max_connections=200"
         ports:
           - 5432:5432
         options: >-
@@ -56,4 +57,4 @@ jobs:
             ${{ runner.os }}-go-
       - run: go build ./cmd/backend
       - run: go run ./cmd/migrate
-      - run: go test ./...
+      - run: go test -p 4 ./...
