@@ -27,6 +27,7 @@ import (
 	"github.com/Southclaws/storyden/app/resources/event/event_writer"
 	"github.com/Southclaws/storyden/app/resources/event/participation/participant_querier"
 	"github.com/Southclaws/storyden/app/resources/event/participation/participant_writer"
+	"github.com/Southclaws/storyden/app/resources/library/node_cache"
 	"github.com/Southclaws/storyden/app/resources/library/node_children"
 	"github.com/Southclaws/storyden/app/resources/library/node_properties"
 	"github.com/Southclaws/storyden/app/resources/library/node_querier"
@@ -38,6 +39,7 @@ import (
 	"github.com/Southclaws/storyden/app/resources/link/link_querier"
 	"github.com/Southclaws/storyden/app/resources/link/link_writer"
 	"github.com/Southclaws/storyden/app/resources/post/category"
+	"github.com/Southclaws/storyden/app/resources/post/category_cache"
 	"github.com/Southclaws/storyden/app/resources/post/post_read_state"
 	"github.com/Southclaws/storyden/app/resources/post/post_search"
 	"github.com/Southclaws/storyden/app/resources/post/post_writer"
@@ -77,6 +79,7 @@ func Build() fx.Option {
 			asset_writer.New,
 			authentication.New,
 			category.New,
+			category_cache.New,
 			notify_querier.New,
 			notify_writer.New,
 			reply.New,
@@ -94,6 +97,7 @@ func Build() fx.Option {
 			collection_querier.New,
 			collection_writer.New,
 			collection_items.New,
+			node_cache.New,
 			node_querier.New,
 			node_writer.New,
 			node_traversal.New,

@@ -4,6 +4,7 @@ import (
 	"net/url"
 
 	"github.com/Southclaws/opt"
+	"github.com/rs/xid"
 
 	"github.com/Southclaws/storyden/app/resources/account"
 	"github.com/Southclaws/storyden/app/resources/account/notification"
@@ -64,6 +65,24 @@ type EventPostReacted struct {
 	PostID post.ID
 }
 
+type EventPostUnreacted struct {
+	PostID post.ID
+}
+
+// -
+// Category events and commands
+// -
+
+type EventCategoryUpdated struct {
+	ID   xid.ID
+	Slug string
+}
+
+type EventCategoryDeleted struct {
+	ID   xid.ID
+	Slug string
+}
+
 type EventMemberMentioned struct {
 	By     account.AccountID
 	Source datagraph.Ref
@@ -91,27 +110,33 @@ type CommandReplyDeindex struct {
 // -
 
 type EventNodeCreated struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type EventNodeUpdated struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type EventNodeDeleted struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type EventNodePublished struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type EventNodeSubmittedForReview struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type EventNodeUnpublished struct {
-	ID library.NodeID
+	ID   library.NodeID
+	Slug string
 }
 
 type CommandNodeIndex struct {

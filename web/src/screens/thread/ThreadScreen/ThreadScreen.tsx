@@ -4,7 +4,7 @@ import { Controller, ControllerProps } from "react-hook-form";
 
 import { Unready } from "src/components/site/Unready";
 
-import { Thread } from "@/api/openapi-schema";
+import { Thread, Visibility } from "@/api/openapi-schema";
 import { CategoryBadge } from "@/components/category/CategoryBadge";
 import { Byline } from "@/components/content/Byline";
 import { ContentComposer } from "@/components/content/ContentComposer/ContentComposer";
@@ -26,6 +26,8 @@ import {
   DiscussionIcon,
   DiscussionParticipatingIcon,
 } from "@/components/ui/icons/Discussion";
+import { LikeIcon, LikeSavedIcon } from "@/components/ui/icons/Like";
+import { VisibilityBadge } from "@/components/visibility/VisibilityBadge";
 import { HStack, LStack, VStack, WStack, styled } from "@/styled-system/jsx";
 
 import { Form, Props, useThreadScreen } from "./useThreadScreen";
@@ -75,15 +77,21 @@ export function ThreadScreen(props: Props) {
         {thread.deletedAt !== undefined && (
           <ThreadDeletedAlert thread={thread} />
         )}
-        <WStack>
-          <Byline
-            href={`#${thread.id}`}
-            author={thread.author}
-            time={new Date(thread.createdAt)}
-            updated={new Date(thread.updatedAt)}
-          />
+        <WStack justifyContent="space-between">
+          <HStack>
+            <Byline
+              href={`#${thread.id}`}
+              author={thread.author}
+              time={new Date(thread.createdAt)}
+              updated={new Date(thread.updatedAt)}
+            />
 
-          {thread.category && <CategoryBadge category={thread.category} />}
+            {thread.category && <CategoryBadge category={thread.category} />}
+          </HStack>
+
+          {thread.visibility !== Visibility.published && (
+            <VisibilityBadge visibility={thread.visibility} />
+          )}
         </WStack>
         <FormErrorText>{form.formState.errors.root?.message}</FormErrorText>
 
@@ -117,7 +125,7 @@ export function ThreadScreen(props: Props) {
         />
       </styled.form>
 
-      <ThreadReplyStatus {...thread} />
+      <ThreadStats thread={thread} />
 
       <VStack w="full">
         {data.thread.replies.total_pages > 1 && (
@@ -209,23 +217,53 @@ function ThreadBodyInput({
   );
 }
 
-function ThreadReplyStatus({ reply_status }: Thread) {
+function ThreadStats({ thread }: { thread: Thread }) {
+  const likeCount = thread.likes.likes;
+  const likeLabel = likeCount === 1 ? "like" : "likes";
+  const replyCount = thread.reply_status.replies;
+  const replyLabel = replyCount === 1 ? "reply" : "replies";
+
   return (
-    <styled.p display="flex" gap="1" alignItems="center" color="fg.muted">
-      <span>
-        {reply_status.replied ? (
-          <DiscussionParticipatingIcon
-            width="4"
-            title="You have replied to this thread"
-          />
-        ) : (
-          <DiscussionIcon
-            width="4"
-            title="You have not replied to this thread"
-          />
-        )}
-      </span>
-      <span>{reply_status.replies} replies</span>
-    </styled.p>
+    <HStack gap="4" color="fg.muted">
+      <styled.span
+        display="flex"
+        gap="1"
+        alignItems="center"
+        title={thread.likes.liked ? "You liked this thread" : undefined}
+      >
+        <span>
+          {thread.likes.liked ? (
+            <LikeSavedIcon width="4" />
+          ) : (
+            <LikeIcon width="4" />
+          )}
+        </span>
+        <span>
+          {likeCount} {likeLabel}
+        </span>
+      </styled.span>
+
+      <styled.span
+        display="flex"
+        gap="1"
+        alignItems="center"
+        title={
+          thread.reply_status.replied
+            ? "You have replied to this thread"
+            : undefined
+        }
+      >
+        <span>
+          {thread.reply_status.replied ? (
+            <DiscussionParticipatingIcon width="4" />
+          ) : (
+            <DiscussionIcon width="4" />
+          )}
+        </span>
+        <span>
+          {replyCount} {replyLabel}
+        </span>
+      </styled.span>
+    </HStack>
   );
 }

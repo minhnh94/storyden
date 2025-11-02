@@ -83,16 +83,25 @@ var (
 	ErrEveryoneRole        = fault.New("cannot change default role", ftag.With(ftag.InvalidArgument), fmsg.WithDesc("default role", "You cannot change the default role."))
 )
 
+const accountGetCacheControl = "private, max-age=5, must-revalidate"
+
 func (i *Accounts) AccountGet(ctx context.Context, request openapi.AccountGetRequestObject) (openapi.AccountGetResponseObject, error) {
 	accountID, err := session.GetAccountID(ctx)
 	if err != nil {
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
+	cacheTime := i.profile_cache.LastModified(ctx, xid.ID(accountID))
+	lastModified := ""
+	if cacheTime != nil {
+		lastModified = cacheTime.Format(time.RFC1123)
+	}
+
 	if i.profile_cache.IsNotModified(ctx, reqinfo.GetCacheQuery(ctx), xid.ID(accountID)) {
 		return openapi.AccountGet304Response{
 			Headers: openapi.NotModifiedResponseHeaders{
-				CacheControl: "private, max-age=60, stale-while-revalidate=120",
+				CacheControl: accountGetCacheControl,
+				LastModified: lastModified,
 			},
 		}, nil
 	}
@@ -102,12 +111,17 @@ func (i *Accounts) AccountGet(ctx context.Context, request openapi.AccountGetReq
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
+	if lastModified == "" {
+		i.profile_cache.Store(ctx, xid.ID(accountID), acc.UpdatedAt)
+		lastModified = acc.UpdatedAt.Format(time.RFC1123)
+	}
+
 	return openapi.AccountGet200JSONResponse{
 		AccountGetOKJSONResponse: openapi.AccountGetOKJSONResponse{
 			Body: serialiseAccount(acc),
 			Headers: openapi.AccountGetOKResponseHeaders{
-				CacheControl: "private, max-age=60",
-				LastModified: acc.UpdatedAt.Format(time.RFC1123),
+				CacheControl: accountGetCacheControl,
+				LastModified: lastModified,
 			},
 		},
 	}, nil
