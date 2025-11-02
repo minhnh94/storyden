@@ -8,11 +8,11 @@ import (
 	"github.com/Southclaws/fault/fctx"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/Southclaws/fault/ftag"
-	"github.com/gosimple/slug"
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/xid"
 	"github.com/samber/lo"
 
+	"github.com/Southclaws/storyden/app/resources/mark"
 	"github.com/Southclaws/storyden/internal/ent"
 	"github.com/Southclaws/storyden/internal/ent/category"
 	"github.com/Southclaws/storyden/internal/ent/post"
@@ -105,7 +105,7 @@ func (d *Repository) CreateCategory(ctx context.Context, name, desc, colour stri
 	mutation := create.Mutation()
 
 	mutation.SetName(name)
-	mutation.SetSlug(slug.Make(name))
+	mutation.SetSlug(mark.Slugify(name))
 	mutation.SetDescription(desc)
 	mutation.SetColour(colour)
 	mutation.SetSort(sort)
@@ -174,7 +174,7 @@ func (d *Repository) GetCategories(ctx context.Context, admin bool) ([]*Category
 		WithPosts(func(pq *ent.PostQuery) {
 			pq.
 				Where(
-					post.FirstEQ(true),
+					post.RootPostIDIsNil(),
 					post.DeletedAtIsNil(),
 					post.VisibilityEQ(post.VisibilityPublished),
 				).

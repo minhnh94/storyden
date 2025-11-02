@@ -222,16 +222,25 @@ func (i *Threads) ThreadList(ctx context.Context, request openapi.ThreadListRequ
 	}, nil
 }
 
+const threadGetCacheControl = "private, max-age=5, stale-while-revalidate=120"
+
 func (i *Threads) ThreadGet(ctx context.Context, request openapi.ThreadGetRequestObject) (openapi.ThreadGetResponseObject, error) {
 	postID, err := i.thread_mark_svc.Lookup(ctx, string(request.ThreadMark))
 	if err != nil {
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
+	cacheTime := i.thread_cache.LastModified(ctx, xid.ID(postID))
+	lastModified := ""
+	if cacheTime != nil {
+		lastModified = cacheTime.Format(time.RFC1123)
+	}
+
 	if i.thread_cache.IsNotModified(ctx, reqinfo.GetCacheQuery(ctx), xid.ID(postID)) {
 		return openapi.ThreadGet304Response{
 			Headers: openapi.NotModifiedResponseHeaders{
-				CacheControl: "public, max-age=60, stale-while-revalidate=120",
+				CacheControl: threadGetCacheControl,
+				LastModified: lastModified,
 			},
 		}, nil
 	}
@@ -243,12 +252,17 @@ func (i *Threads) ThreadGet(ctx context.Context, request openapi.ThreadGetReques
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
+	if lastModified == "" {
+		i.thread_cache.Store(ctx, xid.ID(thread.ID), thread.UpdatedAt)
+		lastModified = thread.UpdatedAt.Format(time.RFC1123)
+	}
+
 	return openapi.ThreadGet200JSONResponse{
 		ThreadGetJSONResponse: openapi.ThreadGetJSONResponse{
 			Body: serialiseThread(thread),
 			Headers: openapi.ThreadGetResponseHeaders{
-				CacheControl: "max-age=1",
-				LastModified: thread.UpdatedAt.Format(time.RFC1123),
+				CacheControl: threadGetCacheControl,
+				LastModified: lastModified,
 			},
 		},
 	}, nil

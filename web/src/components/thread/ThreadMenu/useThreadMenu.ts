@@ -1,7 +1,6 @@
 "use client";
 
-import { useCopyToClipboard } from "@uidotdev/usehooks";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { parseAsBoolean, useQueryState } from "nuqs";
 
 import { ThreadReference } from "src/api/openapi-schema";
@@ -13,6 +12,7 @@ import { useFeedMutations } from "@/lib/feed/mutation";
 import { canDeletePost, canEditPost } from "@/lib/thread/permissions";
 import { withUndo } from "@/lib/thread/undo";
 import { useShare } from "@/utils/client";
+import { useCopyToClipboard } from "@/utils/useCopyToClipboard";
 
 import { getPermalinkForThread } from "../utils";
 
@@ -31,6 +31,8 @@ export function useThreadMenu({
   const account = useSession();
   const [_, setEditing] = useQueryState("edit", parseAsBoolean);
   const [, copyToClipboard] = useCopyToClipboard();
+  const pathname = usePathname();
+  const isOnThreadPage = pathname?.includes(`/t/${thread.slug}`);
 
   const { deleteThread, revalidate } = useFeedMutations();
 
@@ -73,7 +75,10 @@ export function useThreadMenu({
           toastId: `thread-${thread.id}`,
           action: async () => {
             await deleteThread(thread.id);
-            router.push("/");
+
+            if (isOnThreadPage) {
+              router.push("/");
+            }
           },
           onUndo: () => {},
         });

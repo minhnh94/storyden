@@ -8,7 +8,6 @@ import (
 	"github.com/Southclaws/fault/fctx"
 	"github.com/Southclaws/fault/fmsg"
 	"github.com/Southclaws/opt"
-	"github.com/gosimple/slug"
 	"github.com/rs/xid"
 
 	"github.com/Southclaws/storyden/app/resources/account/account_querier"
@@ -96,7 +95,7 @@ func (m *Manager) Create(ctx context.Context,
 	partial.Capacity.Call(func(v int) { opts = append(opts, event_writer.WithCapacity(v)) })
 	partial.Metadata.Call(func(v map[string]any) { opts = append(opts, event_writer.WithMetadata(v)) })
 
-	slug := partial.Slug.Or(slug.Make(name))
+	slug := partial.Slug.Or(mark.Slugify(name))
 
 	thread, err := m.threadWriter.Create(
 		ctx,
@@ -118,8 +117,7 @@ func (m *Manager) Create(ctx context.Context,
 		return nil, fault.Wrap(err, fctx.With(ctx), fmsg.With("failed to create event"))
 	}
 
-	// TODO: Make going from a hydrated mark to a query key easier.
-	mk := event_ref.QueryKey{mark.NewQueryKeyID(xid.ID(evt.ID))}
+	mk := event_ref.NewID(xid.ID(evt.ID))
 
 	err = m.partWriter.Add(ctx,
 		mk,

@@ -1,9 +1,7 @@
-import slugify from "@sindresorhus/slugify";
 import { uniqueId } from "lodash";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { MutatorCallback, useSWRConfig } from "swr";
-import { Xid } from "xid-ts";
 
 import { linkCreate } from "@/api/openapi-client/links";
 import {
@@ -18,12 +16,12 @@ import {
 } from "@/api/openapi-client/nodes";
 import {
   Asset,
+  Identifier,
   Node,
   NodeGetOKResponse,
   NodeListOKResponse,
   NodeUpdatePositionBody,
   NodeWithChildren,
-  TagNameList,
   Visibility,
 } from "@/api/openapi-schema";
 import { useSession } from "@/auth";
@@ -32,12 +30,15 @@ import {
   replaceLibraryPath,
 } from "@/screens/library/library-path";
 import { useLibraryPath } from "@/screens/library/useLibraryPath";
+import { slugify } from "@/utils/slugify";
+import { generateXid } from "@/utils/xid";
 
 import { useCapability } from "../settings/capabilities";
 
 import { CoverImage } from "./metadata";
 import { nodeListMutator, nodeMutator } from "./mutator-functions";
 import {
+  buildNodeChildrenListKey,
   buildNodeKey,
   buildNodeListKey,
   nodeListPrivateKeyFn,
@@ -99,7 +100,7 @@ export function useLibraryMutation(node?: Node) {
     // node IDs not slugs. So we need to prefix the random name to prevent this.
     //
     const name = initialName?.trim() || `untitled`;
-    const slug = slugify(`${name}-${new Xid().toString()}`);
+    const slug = slugify(`${name}-${generateXid()}`);
 
     const initial: NodeWithChildren = {
       id: "optimistic_node_" + uniqueId(),
@@ -190,7 +191,11 @@ export function useLibraryMutation(node?: Node) {
     };
   };
 
-  const updateNodeVisibility = async (slug: string, visibility: Visibility) => {
+  const updateNodeVisibility = async (
+    slug: string,
+    visibility: Visibility,
+    parentID?: Identifier,
+  ) => {
     const mutator: MutatorCallback<NodeListOKResponse> = (data) => {
       if (!data) return;
 
@@ -223,8 +228,13 @@ export function useLibraryMutation(node?: Node) {
     };
 
     const keyFn = buildNodeListKey();
-
     await mutate(keyFn, mutator, { revalidate: false });
+
+    // Only optimistically update non-root moves.
+    if (parentID) {
+      const childListKeyFn = buildNodeChildrenListKey(parentID);
+      await mutate(childListKeyFn, mutator, { revalidate: false });
+    }
 
     await nodeUpdateVisibility(slug, { visibility });
   };
@@ -306,7 +316,13 @@ export function useLibraryMutation(node?: Node) {
     draggingNodeId: string,
     dropTargetId: string,
     dropPosition: "above" | "below" | "inside",
-    newParent: string | null,
+    newParent:
+      | string // Set a new parent
+      | null // Set no parent (root)
+      | undefined, // Keep current parent
+    oldParent:
+      | Identifier // node being moved has a parent
+      | undefined, // node being moved is root
   ) => {
     const mutator: MutatorCallback<NodeListOKResponse> = (prevData) => {
       if (!prevData) return prevData;
@@ -323,6 +339,12 @@ export function useLibraryMutation(node?: Node) {
 
     const listKeyFn = buildNodeListKey();
     await mutate(listKeyFn, mutator, { revalidate: false });
+
+    // Only optimistically update non-root moves.
+    if (oldParent) {
+      const childListKeyFn = buildNodeChildrenListKey(oldParent);
+      await mutate(childListKeyFn, mutator, { revalidate: false });
+    }
 
     const params: NodeUpdatePositionBody = (() => {
       switch (dropPosition) {

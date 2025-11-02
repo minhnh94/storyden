@@ -93,7 +93,7 @@ func (d *Writer) MoveBefore(ctx context.Context, thisnode *library.Node, before 
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
-	return d.nr.Get(ctx, library.QueryKey{thisnode.Mark.Queryable()})
+	return d.nr.Get(ctx, library.NewQueryKey(thisnode.Mark))
 }
 
 func (d *Writer) MoveAfter(ctx context.Context, thisnode *library.Node, after library.NodeID) (*library.Node, error) {
@@ -127,7 +127,7 @@ func (d *Writer) MoveAfter(ctx context.Context, thisnode *library.Node, after li
 		return nil, fault.Wrap(err, fctx.With(ctx))
 	}
 
-	return d.nr.Get(ctx, library.QueryKey{thisnode.Mark.Queryable()})
+	return d.nr.Get(ctx, library.NewQueryKey(thisnode.Mark))
 }
 
 func (d *Writer) MoveIndex(ctx context.Context, thisnode *library.Node, index int) (*library.Node, error) {
@@ -191,9 +191,9 @@ func computeNewSortKey(targetNode *ent.Node, siblingNode opt.Optional[*ent.Node]
 		return targetNode.Sort.Between(sibling.Sort)
 	} else {
 		if direction < 0 {
-			return targetNode.Sort.Before(100)
+			return targetNode.Sort.Before(1)
 		} else {
-			return targetNode.Sort.After(100)
+			return targetNode.Sort.After(1)
 		}
 	}
 }
